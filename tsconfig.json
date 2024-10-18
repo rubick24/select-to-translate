@@ -11,9 +11,7 @@
 
     "isolatedModules": false,
     "allowJs": false,
-    "outDir": "output/types",
-    "declaration": true,
-    "emitDeclarationOnly": true
+    "outDir": "output/types"
   },
   "include": ["src"]
 }
