@@ -1,7 +1,7 @@
 import { batch, createRoot, createSignal, Match, Switch } from 'solid-js'
 import { createStore } from 'solid-js/store'
-
 import { render } from 'solid-js/web'
+import { computePosition, autoUpdate, shift } from '@floating-ui/dom'
 
 const IconTranslate = () => (
   <svg height="16" width="16" viewBox="0 -960 960 960" fill="#222222">
@@ -29,60 +29,132 @@ const [store, setStore] = createRoot(() =>
   createStore({
     text: '',
     response: '',
-    status: 'ready'
+    status: 'ready' as 'ready' | 'loading' | 'done' | 'error'
   })
 )
+
+const iconStyle = {
+  'box-sizing': 'border-box',
+  'display': 'flex',
+  'background': '#fff',
+  'padding': '4px',
+  'width': '24px',
+  'height': '24px'
+} as const
+const resultStyle = {
+  'box-sizing': 'border-box',
+  'display': 'flex',
+  'white-space': 'pre-wrap',
+  'font-size': '14px',
+  'padding': '4px'
+} as const
 
 const TranslateWidget = () => {
   const handleSend = async () => {
     setStore('status', 'loading')
     const res = await chrome.runtime.sendMessage({ text: store.text })
-    console.log(res)
-    batch(() => {
-      setStore('status', 'done')
-      setStore('response', res)
-    })
+    if (res.code === 0) {
+      batch(() => {
+        setStore('status', 'done')
+        setStore('response', res.data)
+      })
+    } else {
+      batch(() => {
+        setStore('status', 'error')
+        setStore('response', `error ${res.code} ${res.message}`)
+      })
+    }
   }
+
   return (
-    <div
-      style={{
-        'box-sizing': 'border-box',
-        'display': 'flex',
-        'background': '#fff',
-        'padding': '3px',
-        'border': '1px solid #ddd',
-        'min-width': '24px',
-        'min-height': '24px',
-        'border-radius': '4px'
-      }}
-      onMouseDown={e => e.preventDefault()}
-      onClick={handleSend}
-    >
-      <Switch fallback={<IconTranslate />}>
-        <Match when={store.status === 'loading'}>
-          <IconLoading />
+    <div style={{ display: 'flex' }}>
+      <Switch fallback={<div style={iconStyle}></div>}>
+        <Match when={store.status === 'ready'}>
+          <div style={{ ...iconStyle, cursor: 'pointer' }} onMouseDown={e => e.preventDefault()} onClick={handleSend}>
+            <IconTranslate />
+          </div>
         </Match>
-        <Match when={store.status === 'done'}>{store.response}</Match>
+        <Match when={store.status === 'loading'}>
+          <div style={iconStyle} onMouseDown={e => e.preventDefault()}>
+            <IconLoading />
+          </div>
+        </Match>
+        <Match when={store.status === 'done'}>
+          <div style={resultStyle}>{store.response}</div>
+        </Match>
+        <Match when={store.status === 'error'}>
+          <div style={{ ...resultStyle, color: 'red' }}>{store.response}</div>
+        </Match>
       </Switch>
     </div>
   )
 }
 const root = document.createElement('div')
+root.popover = 'auto'
 root.className = '__rubick-translate'
 Object.assign(root.style, {
+  boxSizing: 'border-box',
   position: 'fixed',
   top: 0,
   left: 0,
   zIndex: 10000,
-  display: 'none'
+  margin: 0,
+  padding: 0,
+  borderWidth: '2px',
+  maxWidth: '480px'
 })
 document.body.appendChild(root)
 render(() => <TranslateWidget />, root)
 
-const hide = () => (root.style.display = 'none')
+let cleanup: (() => void) | undefined = undefined
+const hide = () => {
+  cleanup?.()
+  root.hidePopover()
+  batch(() => {
+    setStore('status', 'ready')
+    setStore('response', '')
+  })
+}
 const show = ({ x, y }: { x: number; y: number }) => {
-  root.style.display = 'flex'
-  root.style.transform = `translate(${x}px, ${y}px)`
+  root.showPopover()
+
+  const virtualEl = {
+    getBoundingClientRect() {
+      return {
+        width: 0,
+        height: 0,
+        x,
+        y,
+        top: y,
+        left: x,
+        right: x,
+        bottom: y
+      }
+    },
+    contextElement: document.body
+  }
+
+  cleanup = autoUpdate(
+    virtualEl,
+    root,
+    () => {
+      computePosition(virtualEl, root, {
+        strategy: 'fixed',
+        middleware: [
+          shift({
+            mainAxis: true,
+            crossAxis: true
+          })
+        ]
+      }).then(({ x, y }) => {
+        root.style.transform = `translate(${x}px, ${y}px)`
+      })
+    },
+    {
+      ancestorScroll: false,
+      layoutShift: false
+    }
+  )
 }
 
 const debounce = <T extends (...args: any) => any>(func: T, timeout = 100) => {
@@ -101,7 +173,7 @@ const debounce = <T extends (...args: any) => any>(func: T, timeout = 100) => {
 
 const getSelectedText = () => {
   const selection = document.getSelection()
-  const text = selection?.toString()
+  const text = selection?.toString()?.trim()
   if (!selection || selection.type !== 'Range' || !text) {
     debouncedHandler.cancel()
     hide()

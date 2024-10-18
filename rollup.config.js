@@ -2,7 +2,7 @@ import { babel } from '@rollup/plugin-babel'
 import commonjs from '@rollup/plugin-commonjs'
 import { nodeResolve } from '@rollup/plugin-node-resolve'
 import replace from '@rollup/plugin-replace'
-// import terser from '@rollup/plugin-terser'
+import terser from '@rollup/plugin-terser'
 import { readFileSync } from 'fs'
 
 const packageJSON = JSON.parse(readFileSync('./package.json').toString('utf-8'))
@@ -10,7 +10,7 @@ const packageJSON = JSON.parse(readFileSync('./package.json').toString('utf-8'))
 const plugins = [
   nodeResolve({
     browser: true,
-    extensions: ['.mjs', '.js', '.json', '.node']
+    extensions: ['.js', '.jsx', '.ts', '.tsx']
   }),
   commonjs(),
   replace({
@@ -24,10 +24,11 @@ const plugins = [
     babelHelpers: 'bundled',
     presets: ['@babel/preset-typescript', 'solid'],
     extensions: ['.js', '.jsx', '.ts', '.tsx']
-  })
+  }),
+  terser()
 ]
 
-const files = ['content_script.tsx', 'service_worker.ts']
+const files = ['popup.tsx', 'content_script.tsx', 'service_worker.ts']
 
 export default files.map(f => ({
   input: `src/${f}`,
