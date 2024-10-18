@@ -10,8 +10,7 @@
     "jsxImportSource": "solid-js",
 
     "isolatedModules": false,
-    "allowJs": false,
-    "outDir": "output/types"
+    "allowJs": false
   },
   "include": ["src"]
 }
