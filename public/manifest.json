@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "Rubick Translate",
+  "description": "translate with gemini api",
+  "version": "1.0.0",
+  "action": {
+    "default_popup": "./popup.html",
+    "default_icon": {
+      "16": "./translate.png",
+      "32": "./translate.png",
+      "48": "./translate.png",
+      "128": "./translate.png"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "all_frames": true,
+      "match_about_blank": true,
+      "js": ["./content_script.js"]
+    }
+  ],
+  "background": {
+    "service_worker": "./service_worker.js"
+  },
+  "permissions": ["storage", "webRequest"],
+  "host_permissions": ["https://*.googleapis.com/"]
+}

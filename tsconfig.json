@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "lib": ["ESNext", "DOM"],
+
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
+
+    "isolatedModules": false,
+    "allowJs": false,
+    "outDir": "output/types",
+    "declaration": true,
+    "emitDeclarationOnly": true
+  },
+  "include": ["src"]
+}

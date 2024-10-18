@@ -1,0 +1,24 @@
+{
+  "name": "rubick-translate",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "rm -rf ./output/* && cp -r ./public/* ./output && rollup --config ./rollup.config.js && tsc"
+  },
+  "dependencies": {
+    "solid-js": "^1.9.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.8",
+    "@babel/preset-typescript": "^7.25.7",
+    "@rollup/plugin-babel": "^6.0.4",
+    "@rollup/plugin-commonjs": "^28.0.1",
+    "@rollup/plugin-node-resolve": "^15.3.0",
+    "@rollup/plugin-replace": "^6.0.1",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@types/chrome": "^0.0.278",
+    "babel-preset-solid": "^1.9.2",
+    "rollup": "^4.24.0",
+    "typescript": "^5.6.3"
+  }
+}
