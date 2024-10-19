@@ -4,13 +4,13 @@ import { render } from 'solid-js/web'
 import { computePosition, autoUpdate, shift } from '@floating-ui/dom'
 
 const IconTranslate = () => (
-  <svg height="16" width="16" viewBox="0 -960 960 960" fill="#222222">
+  <svg height="16" width="16" viewBox="0 -960 960 960" fill="currentColor">
     <path d="m476-80 182-480h84L924-80h-84l-43-122H603L560-80h-84ZM160-200l-56-56 202-202q-35-35-63.5-80T190-640h84q20 39 40 68t48 58q33-33 68.5-92.5T484-720H40v-80h280v-80h80v80h280v80H564q-21 72-63 148t-83 116l96 98-30 82-122-125-202 201Zm468-72h144l-72-204-72 204Z" />
   </svg>
 )
 
 const IconLoading = () => (
-  <svg height="16" width="16" viewBox="0 0 100 100" fill="#222222">
+  <svg height="16" width="16" viewBox="0 0 100 100" fill="currentColor">
     <path d="M73,50c0-12.7-10.3-23-23-23S27,37.3,27,50 M30.9,50c0-10.5,8.5-19.1,19.1-19.1S69.1,39.5,69.1,50">
       <animateTransform
         attributeName="transform"
@@ -33,17 +33,34 @@ const [store, setStore] = createRoot(() =>
   })
 )
 
-const iconStyle = {
+const scopeStyle = `@scope {
+  :scope {
+    background: #08f;
+    --background-color: #fff;
+    --text-color: #5f6368;
+    background: var(--background-color);
+  }
+  @media (prefers-color-scheme: dark) {
+    :scope {
+      --background-color: #202124;
+      --text-color: #e8eaed;
+      background: var(--background-color);
+    }
+  }
+}
+`
+const baseStyle = {
   'box-sizing': 'border-box',
-  'display': 'flex',
-  'background': '#fff',
-  'padding': '4px',
-  'width': '24px',
-  'height': '24px'
+  'display': 'flex'
+} as const
+const iconStyle = {
+  ...baseStyle,
+  padding: '4px',
+  width: '24px',
+  height: '24px'
 } as const
 const resultStyle = {
-  'box-sizing': 'border-box',
-  'display': 'flex',
+  ...baseStyle,
   'white-space': 'pre-wrap',
   'font-size': '14px',
   'padding': '4px'
@@ -52,7 +69,7 @@ const resultStyle = {
 const TranslateWidget = () => {
   const handleSend = async () => {
     setStore('status', 'loading')
-    const res = await chrome.runtime.sendMessage({ text: store.text })
+    const res = await chrome.runtime.sendMessage({ type: 'translate', text: store.text })
     if (res.code === 0) {
       batch(() => {
         setStore('status', 'done')
@@ -67,7 +84,8 @@ const TranslateWidget = () => {
   }
 
   return (
-    <div style={{ display: 'flex' }}>
+    <>
+      <style innerHTML={scopeStyle}></style>
       <Switch fallback={<div style={iconStyle}></div>}>
         <Match when={store.status === 'ready'}>
           <div style={{ ...iconStyle, cursor: 'pointer' }} onMouseDown={e => e.preventDefault()} onClick={handleSend}>
@@ -86,7 +104,7 @@ const TranslateWidget = () => {
           <div style={{ ...resultStyle, color: 'red' }}>{store.response}</div>
         </Match>
       </Switch>
-    </div>
+    </>
   )
 }
 const root = document.createElement('div')
@@ -115,7 +133,7 @@ const hide = () => {
     setStore('response', '')
   })
 }
-const show = ({ x, y }: { x: number; y: number }) => {
+const show = async ({ x, y }: { x: number; y: number }) => {
   root.showPopover()
 
   const virtualEl = {
@@ -181,18 +199,29 @@ const getSelectedText = () => {
   }
   return text
 }
-const debouncedHandler = debounce((e: MouseEvent) => {
+const debouncedHandler = debounce(async (e: MouseEvent) => {
   const text = getSelectedText()
   if (!text) {
     return
   }
+  // only symbols
+  if (/^[ _\-=()+*&^%$#@!\[\]{}<>|\\/:;'".,]*$/.test(text)) {
+    return
+  }
+  // target lang
+  const res = await chrome.runtime.sendMessage({ type: 'detect', text })
+  if (['zh', 'cht'].includes(res)) {
+    return
+  }
+
   setStore('text', text)
   show({ x: e.clientX, y: e.clientY })
 })
 
 window.addEventListener('mouseup', e => {
-  if (e.composedPath().includes(root)) {
-    // 插件内部
+  const path = e.composedPath()
+  if (path.includes(root) || path.some(el => ['INPUT', 'TEXTAREA'].includes((el as HTMLElement).tagName))) {
+    // inside extension or input element
     return
   }
   if (!getSelectedText()) {
@@ -200,3 +229,11 @@ window.addEventListener('mouseup', e => {
   }
   debouncedHandler.fn(e)
 })
+
+const set = async (v: boolean) => {
+  const res = await chrome.runtime.sendMessage({ type: 'color-schema', color: v ? 'light' : 'dark' })
+  console.log(res)
+}
+const colorScheme = window.matchMedia('(prefers-color-scheme: light)')
+set(colorScheme.matches)
+colorScheme.addEventListener('change', e => set(e.matches))

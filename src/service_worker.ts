@@ -23,69 +23,102 @@ const wordInstruction = (v: string) => `1. Output english phonetic symbols of th
 2. List each word class of the input word like n. v. adj. adv., then with corresponding meaning of the word translated in ${v}, each word class a row.
 3. Return plain text without other syntax in markdown.`
 
+let currentColor = 'dark'
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  const text = message.text
+  if (message.type === 'translate') {
+    const text = message.text
 
-  const instruction = text.split(/[ \n\t,.]/).length > 1 ? paragraphInstruction : wordInstruction
+    const instruction = text.split(/[ \n\t,.]/).length > 1 ? paragraphInstruction : wordInstruction
 
-  const fn = async () => {
-    const st = await chrome.storage.sync.get(['gemini_key', 'language'])
-    const key = st?.['gemini_key'] ?? ''
-    const targetLang = st?.['language'] ?? 'simplified chinese'
+    const fn = async () => {
+      const st = await chrome.storage.sync.get(['gemini_key', 'language'])
+      const key = st?.['gemini_key'] ?? ''
+      const targetLang = st?.['language'] ?? 'simplified chinese'
 
-    try {
-      const res = (await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
-        {
-          method: 'post',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            system_instruction: {
-              parts: {
-                text: instruction(targetLang)
-              }
-            },
-            contents: {
-              parts: { text }
-            },
-            safetySettings: SAFETY_SETTINGS
-          })
-        }
-      ).then(v => v.json())) as
-        | {
-            candidates: {
-              content: {
+      try {
+        const res = (await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,
+          {
+            method: 'post',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              system_instruction: {
                 parts: {
-                  text: string
-                }[]
-                role: string
+                  text: instruction(targetLang)
+                }
+              },
+              contents: {
+                parts: { text }
+              },
+              safetySettings: SAFETY_SETTINGS
+            })
+          }
+        ).then(v => v.json())) as
+          | {
+              candidates: {
+                content: {
+                  parts: {
+                    text: string
+                  }[]
+                  role: string
+                }
+                finishReason: string
+                index: number
+              }[]
+              usageMetadata: {
+                promptTokenCount: number
+                candidatesTokenCount: number
+                totalTokenCount: number
               }
-              finishReason: string
-              index: number
-            }[]
-            usageMetadata: {
-              promptTokenCount: number
-              candidatesTokenCount: number
-              totalTokenCount: number
             }
-          }
-        | {
-            error: {
-              code: string
-              message: string
-              status: string
-              // details:
+          | {
+              error: {
+                code: string
+                message: string
+                status: string
+                // details:
+              }
             }
-          }
-      if ('error' in res) {
-        throw new Error(`${res.error.code} ${res.error.status} ${res.error.message}`)
+        if ('error' in res) {
+          throw new Error(`${res.error.code} ${res.error.status} ${res.error.message}`)
+        }
+        return { code: 0, data: res.candidates[0]?.content?.parts?.map(v => v.text).join('') }
+      } catch (e: any) {
+        return { code: -2, message: e?.message || e?.toString?.() }
       }
-      return { code: 0, data: res.candidates[0]?.content?.parts?.map(v => v.text).join('') }
-    } catch (e: any) {
-      return { code: -2, message: e?.message || e?.toString?.() }
+    }
+
+    fn().then(sendResponse)
+    return true
+  } else if (message.type === 'detect') {
+    baiduDetectLang(message.text).then(sendResponse)
+    return true
+  } else if (message.type === 'color-schema') {
+    const color = message.color
+    if (currentColor !== color) {
+      const iconVariant = color === 'light' ? '_light' : ''
+      chrome.action.setIcon({
+        path: {
+          '16': `./icons/translate_16${iconVariant}.png`,
+          '32': `./icons/translate_32${iconVariant}.png`,
+          '48': `./icons/translate_48${iconVariant}.png`,
+          '128': `./icons/translate_128${iconVariant}.png`
+        }
+      })
+      currentColor = color
+      sendResponse(`icon color set to ${currentColor}`)
+      return true
     }
   }
-
-  fn().then(sendResponse)
-  return true
 })
+
+const baiduDetectLang = async (text: string) => {
+  const url = `https://fanyi.baidu.com/langdetect?${new URLSearchParams({ query: text }).toString()}`
+  try {
+    const res = await (await fetch(url, { method: 'post', signal: AbortSignal.timeout(1000) })).json()
+    return res.lan ?? 'en'
+  } catch (e) {
+    return 'en'
+  }
+}

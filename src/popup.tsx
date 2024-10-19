@@ -16,13 +16,19 @@ const Popup = () => {
 
   return (
     <>
-      <div>
-        <span>Gemini API Key:</span>
-        <input value={key()} onChange={v => setKey(v.target.value)} onBlur={handleBlur} />
+      <div style={{ 'display': 'flex', 'gap': '4px', 'margin-bottom': '8px' }}>
+        <label for="gemini_key">Gemini API Key:</label>
+        <input
+          name="gemini_key"
+          type="password"
+          value={key()}
+          onChange={v => setKey(v.target.value)}
+          onBlur={handleBlur}
+        />
       </div>
-      <div>
-        <span>Target Language:</span>
-        <input value={language()} onChange={v => setLanguage(v.target.value)} onBlur={handleBlur} />
+      <div style={{ display: 'flex', gap: '4px' }}>
+        <label for="language">Target Language:</label>
+        <input name="language" value={language()} onChange={v => setLanguage(v.target.value)} onBlur={handleBlur} />
       </div>
     </>
   )
