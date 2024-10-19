@@ -39,12 +39,12 @@ const scopeStyle = `@scope {
     --background-color: #fff;
     --text-color: #5f6368;
     background: var(--background-color);
+    color: var(--text-color);
   }
   @media (prefers-color-scheme: dark) {
     :scope {
       --background-color: #202124;
       --text-color: #e8eaed;
-      background: var(--background-color);
     }
   }
 }
