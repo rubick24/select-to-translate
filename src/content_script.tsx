@@ -35,11 +35,21 @@ const [store, setStore] = createRoot(() =>
 
 const scopeStyle = `@scope {
   :scope {
-    background: #08f;
     --background-color: #fff;
     --text-color: #5f6368;
     background: var(--background-color);
     color: var(--text-color);
+
+    box-sizing: border-box;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 10000;
+    margin: 0;
+    padding: 2px;
+    box-shadow: inset 0 0 0 2px var(--text-color);
+    border: none;
+    max-width: 480px;
   }
   @media (prefers-color-scheme: dark) {
     :scope {
@@ -109,18 +119,7 @@ const TranslateWidget = () => {
 }
 const root = document.createElement('div')
 root.popover = 'auto'
-root.className = '__rubick-translate'
-Object.assign(root.style, {
-  boxSizing: 'border-box',
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  zIndex: 10000,
-  margin: 0,
-  padding: 0,
-  borderWidth: '2px',
-  maxWidth: '480px'
-})
+root.id = '__rubick-translate'
 document.body.appendChild(root)
 render(() => <TranslateWidget />, root)
 
@@ -231,8 +230,7 @@ window.addEventListener('mouseup', e => {
 })
 
 const set = async (v: boolean) => {
-  const res = await chrome.runtime.sendMessage({ type: 'color-schema', color: v ? 'light' : 'dark' })
-  console.log(res)
+  await chrome.runtime.sendMessage({ type: 'color-schema', color: v ? 'light' : 'dark' })
 }
 const colorScheme = window.matchMedia('(prefers-color-scheme: light)')
 set(colorScheme.matches)
