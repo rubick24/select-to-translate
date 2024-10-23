@@ -23,6 +23,6 @@
   "background": {
     "service_worker": "./service_worker.js"
   },
-  "permissions": ["storage", "webRequest"],
-  "host_permissions": ["https://*.googleapis.com/"]
+  "permissions": ["storage"],
+  "host_permissions": ["https://generativelanguage.googleapis.com/", "https://fanyi.baidu.com/"]
 }
