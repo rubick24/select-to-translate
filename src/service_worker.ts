@@ -94,22 +94,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   } else if (message.type === 'detect') {
     baiduDetectLang(message.text).then(sendResponse)
     return true
-  } else if (message.type === 'color-schema') {
-    const color = message.color
-    if (currentColor !== color) {
-      const iconVariant = color === 'light' ? '_light' : ''
-      chrome.action.setIcon({
-        path: {
-          '16': `./icons/translate_16${iconVariant}.png`,
-          '32': `./icons/translate_32${iconVariant}.png`,
-          '48': `./icons/translate_48${iconVariant}.png`,
-          '128': `./icons/translate_128${iconVariant}.png`
-        }
-      })
-      currentColor = color
-      sendResponse(`icon color set to ${currentColor}`)
-      return true
-    }
   }
 })
 

@@ -1,4 +1,4 @@
-import { batch, createRoot, createSignal, Match, Switch } from 'solid-js'
+import { batch, createRoot, Match, Switch } from 'solid-js'
 import { createStore } from 'solid-js/store'
 import { render } from 'solid-js/web'
 import { computePosition, autoUpdate, shift } from '@floating-ui/dom'
@@ -127,12 +127,13 @@ let cleanup: (() => void) | undefined = undefined
 const hide = () => {
   cleanup?.()
   root.hidePopover()
+}
+
+const show = async ({ x, y }: { x: number; y: number }) => {
   batch(() => {
     setStore('status', 'ready')
     setStore('response', '')
   })
-}
-const show = async ({ x, y }: { x: number; y: number }) => {
   root.showPopover()
 
   const virtualEl = {
@@ -228,10 +229,3 @@ window.addEventListener('mouseup', e => {
   }
   debouncedHandler.fn(e)
 })
-
-const set = async (v: boolean) => {
-  await chrome.runtime.sendMessage({ type: 'color-schema', color: v ? 'light' : 'dark' })
-}
-const colorScheme = window.matchMedia('(prefers-color-scheme: light)')
-set(colorScheme.matches)
-colorScheme.addEventListener('change', e => set(e.matches))
