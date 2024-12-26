@@ -1,3 +1,5 @@
+import { langsMap } from './constants'
+
 const SAFETY_SETTINGS = [
   {
     category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
@@ -23,13 +25,12 @@ const wordInstruction = (v: string) => `1. Output english phonetic symbols of th
 2. List each word class of the input word like n. v. adj. adv., then with corresponding meaning of the word translated in ${v}, each word class a row.
 3. Return plain text without other syntax in markdown.`
 
-let currentColor = 'dark'
-
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'translate') {
     const text = message.text
 
-    const instruction = text.split(/[ \n\t,.]/).length > 1 ? paragraphInstruction : wordInstruction
+    const instruction =
+      message.lang === 'english' && text.split(/[ \n\t,.]/).length > 1 ? paragraphInstruction : wordInstruction
 
     const fn = async () => {
       const st = await chrome.storage.sync.get(['gemini_key', 'language'])
@@ -92,7 +93,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     fn().then(sendResponse)
     return true
   } else if (message.type === 'detect') {
-    baiduDetectLang(message.text).then(sendResponse)
+    Promise.all([
+      baiduDetectLang(message.text),
+      chrome.storage.sync.get(['language']).then(v => v['language'] as string)
+    ]).then(r => {
+      sendResponse({ same: langsMap[r[0]] === r[1], lang: langsMap[r[0]] })
+    })
     return true
   }
 })
@@ -100,7 +106,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 const baiduDetectLang = async (text: string) => {
   const url = `https://fanyi.baidu.com/langdetect?${new URLSearchParams({ query: text }).toString()}`
   try {
-    const res = await (await fetch(url, { method: 'post', signal: AbortSignal.timeout(1000) })).json()
+    const res = (await (await fetch(url, { method: 'post', signal: AbortSignal.timeout(1000) })).json()) as {
+      lan: string
+    }
     return res.lan ?? 'en'
   } catch (e) {
     return 'en'

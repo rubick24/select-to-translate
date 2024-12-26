@@ -28,6 +28,7 @@ const IconLoading = () => (
 const [store, setStore] = createRoot(() =>
   createStore({
     text: '',
+    lang: '',
     response: '',
     status: 'ready' as 'ready' | 'loading' | 'done' | 'error'
   })
@@ -35,6 +36,11 @@ const [store, setStore] = createRoot(() =>
 
 const scopeStyle = `@scope {
   :scope {
+    all: initial;
+    &:not(:popover-open):not(dialog[open]) {
+      display: none;
+    }
+
     --background-color: #fff;
     --text-color: #5f6368;
     background: var(--background-color);
@@ -79,7 +85,7 @@ const resultStyle = {
 const TranslateWidget = () => {
   const handleSend = async () => {
     setStore('status', 'loading')
-    const res = await chrome.runtime.sendMessage({ type: 'translate', text: store.text })
+    const res = await chrome.runtime.sendMessage({ type: 'translate', text: store.text, lang: store.lang })
     if (res.code === 0) {
       batch(() => {
         setStore('status', 'done')
@@ -208,13 +214,13 @@ const debouncedHandler = debounce(async (e: MouseEvent) => {
   if (/^[ _\-=()+*&^%$#@!\[\]{}<>|\\/:;'".,]*$/.test(text)) {
     return
   }
-  // target lang
-  const res = await chrome.runtime.sendMessage({ type: 'detect', text })
-  if (['zh', 'cht'].includes(res)) {
+  const { same, lang } = await chrome.runtime.sendMessage({ type: 'detect', text })
+  if (same) {
     return
   }
 
   setStore('text', text)
+  setStore('lang', lang)
   show({ x: e.clientX, y: e.clientY })
 })
 
