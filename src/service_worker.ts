@@ -30,7 +30,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const text = message.text
 
     const instruction =
-      message.lang === 'english' && text.split(/[ \n\t,.]/).length > 1 ? paragraphInstruction : wordInstruction
+      message.lang === 'english' && text.split(/[ \n\t,.]/).length <= 1 ? wordInstruction : paragraphInstruction
 
     const fn = async () => {
       const st = await chrome.storage.sync.get(['gemini_key', 'language'])
