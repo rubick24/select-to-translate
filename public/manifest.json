@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Rubick Translate",
   "description": "select-to-translate with gemini api, as a naive replacement of OpenAI Translator",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "action": {
     "default_popup": "./popup.html",
     "default_icon": {
