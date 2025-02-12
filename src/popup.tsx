@@ -30,7 +30,7 @@ const Popup = () => {
 
   onMount(async () => {
     const res = await chrome.storage.sync.get(['gemini_key', 'language'])
-    setKey(res['gemini_key'])
+    setKey(res['gemini_key'] ?? '')
     setLanguage(res['language'] ?? 'chinese')
   })
 
